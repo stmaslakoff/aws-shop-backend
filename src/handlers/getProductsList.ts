@@ -14,7 +14,7 @@ export const handler = async (event: APIGatewayProxyEvent): Promise<APIGatewayPr
   } catch (error) {
     console.error('Error processing request:', error);
 
-    return createResponse(200, {
+    return createResponse(500, {
       message: 'Internal Server Error'
     });
   }
