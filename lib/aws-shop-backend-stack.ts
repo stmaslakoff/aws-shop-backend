@@ -2,17 +2,23 @@ import * as cdk from 'aws-cdk-lib';
 import * as lambda from 'aws-cdk-lib/aws-lambda';
 import * as apigateway from 'aws-cdk-lib/aws-apigateway';
 import * as path from 'path';
+import { NodejsFunction } from 'aws-cdk-lib/aws-lambda-nodejs';
 
-const HANDLERS_FOLDER = '../dist/src/handlers';
+const HANDLERS_FOLDER = '../src/handlers';
 
 export class AwsShopBackendStack extends cdk.Stack {
   constructor(scope: cdk.App, id: string, props?: cdk.StackProps) {
     super(scope, id, props);
 
-    const handler = new lambda.Function(this, 'ApiHandler', {
+    const handler = new NodejsFunction(this, 'ApiHandler', {
       runtime: lambda.Runtime.NODEJS_22_X,
-      code: lambda.Code.fromAsset(path.join(__dirname, HANDLERS_FOLDER)),
-      handler: 'getProductsList.handler',
+      entry: path.join(__dirname, `${HANDLERS_FOLDER}/getProductsList.ts`),
+      handler: 'handler',
+      bundling: {
+        minify: true,
+        sourceMap: true,
+        externalModules: ['aws-sdk'],
+      }
     });
 
     const api = new apigateway.RestApi(this, 'Api', {
@@ -20,7 +26,12 @@ export class AwsShopBackendStack extends cdk.Stack {
       description: 'API Gateway with Lambda integration'
     });
 
-    const integration = new apigateway.LambdaIntegration(handler);
-    api.root.addMethod('GET', integration);
+    const products = api.root.addResource('products');
+    products.addMethod('GET', new apigateway.LambdaIntegration(handler));
+
+    new cdk.CfnOutput(this, 'ApiUrl', {
+      value: api.url,
+      description: 'API Gateway endpoint URL'
+    });
   }
 }
