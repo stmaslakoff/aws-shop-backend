@@ -32,7 +32,11 @@ export class AwsShopBackendStack extends cdk.Stack {
 
     const api = new apigateway.RestApi(this, 'Api', {
       restApiName: 'Products API',
-      description: 'API Gateway with Lambda integration'
+      description: 'API Gateway with Lambda integration',
+      defaultCorsPreflightOptions: {
+        allowOrigins: apigateway.Cors.ALL_ORIGINS,
+        allowMethods: apigateway.Cors.ALL_METHODS
+      },
     });
 
     const products = api.root.addResource('products');

@@ -1,8 +1,8 @@
 import { APIGatewayProxyEvent, APIGatewayProxyResult } from 'aws-lambda';
 import { getProductsList } from '../services/product.service';
+import { createResponse } from '../utils/response';
 
 export const handler = async (event: APIGatewayProxyEvent): Promise<APIGatewayProxyResult> => {
-  // Log the incoming event
   console.log('Event:', JSON.stringify(event));
 
   try {
@@ -10,21 +10,12 @@ export const handler = async (event: APIGatewayProxyEvent): Promise<APIGatewayPr
 
     const products = await getProductsList();
 
-    return {
-      statusCode: 200,
-      body: JSON.stringify(products),
-      headers: {
-        'Content-Type': 'application/json'
-      }
-    };
+    return createResponse(200, products)
   } catch (error) {
     console.error('Error processing request:', error);
 
-    return {
-      statusCode: 500,
-      body: JSON.stringify({
-        message: 'Internal Server Error'
-      })
-    };
+    return createResponse(200, {
+      message: 'Internal Server Error'
+    });
   }
 };

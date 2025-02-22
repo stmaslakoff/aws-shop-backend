@@ -1,5 +1,6 @@
 import { APIGatewayProxyEvent, APIGatewayProxyResult } from 'aws-lambda';
 import { getProductById } from '../services/product.service';
+import { createResponse } from '../utils/response';
 
 export const handler = async (event: APIGatewayProxyEvent): Promise<APIGatewayProxyResult> => {
   console.log('Event:', JSON.stringify(event));
@@ -8,43 +9,19 @@ export const handler = async (event: APIGatewayProxyEvent): Promise<APIGatewayPr
     const productId = event.pathParameters?.productId;
 
     if (!productId) {
-      return {
-        statusCode: 400,
-        body: JSON.stringify({ message: 'Product ID is required' }),
-        headers: {
-          'Content-Type': 'application/json'
-        }
-      };
+      return createResponse(400, { message: 'Product ID is required' });
     }
 
     const product = await getProductById(productId);
 
     if (!product) {
-      return {
-        statusCode: 404,
-        body: JSON.stringify({ message: 'Product not found' }),
-        headers: {
-          'Content-Type': 'application/json'
-        }
-      };
+      return createResponse(404, { message: 'Product not found' });
     }
 
-    return {
-      statusCode: 200,
-      body: JSON.stringify(product),
-      headers: {
-        'Content-Type': 'application/json'
-      }
-    };
+    return createResponse(200, product);
   } catch (error) {
     console.error('Error processing request:', error);
 
-    return {
-      statusCode: 500,
-      body: JSON.stringify({ message: 'Internal Server Error' }),
-      headers: {
-        'Content-Type': 'application/json'
-      }
-    };
+    return createResponse(500, { message: 'Internal Server Error' });
   }
 };
