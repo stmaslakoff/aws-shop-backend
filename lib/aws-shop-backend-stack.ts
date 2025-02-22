@@ -2,23 +2,38 @@ import * as cdk from 'aws-cdk-lib';
 import * as lambda from 'aws-cdk-lib/aws-lambda';
 import * as apigateway from 'aws-cdk-lib/aws-apigateway';
 import * as path from 'path';
+import { LayerVersion, Function, Runtime, Code } from 'aws-cdk-lib/aws-lambda';
 import { NodejsFunction, NodejsFunctionProps } from 'aws-cdk-lib/aws-lambda-nodejs';
+import { ILayerVersion } from 'aws-cdk-lib/aws-lambda/lib/layers';
 
 const HANDLERS_FOLDER = '../src/handlers';
 
-const commonHandlerProps: Partial<NodejsFunctionProps> = {
+const getCommonHandlerProps = ({ layers }: { layers?: [ILayerVersion] }): Partial<NodejsFunctionProps> => ({
   runtime: lambda.Runtime.NODEJS_22_X,
   handler: 'handler',
+  layers,
+  tracing: lambda.Tracing.ACTIVE,
   bundling: {
     minify: true,
     sourceMap: true,
-    externalModules: ['aws-sdk'],
+    externalModules: [
+      '@aws-lambda-powertools/*',
+      'aws-sdk'
+    ],
   }
-}
+});
 
 export class AwsShopBackendStack extends cdk.Stack {
   constructor(scope: cdk.App, id: string, props?: cdk.StackProps) {
     super(scope, id, props);
+
+    const powertoolsLayer = LayerVersion.fromLayerVersionArn(
+      this,
+      'PowertoolsLayer',
+      `arn:aws:lambda:${cdk.Stack.of(this).region}:094274105915:layer:AWSLambdaPowertoolsTypeScriptV2:20`
+    );
+
+    const commonHandlerProps = getCommonHandlerProps({ layers: [powertoolsLayer] });
 
     const getProductsListHandler = new NodejsFunction(this, 'GetProductsListHandler', {
       ...commonHandlerProps,
