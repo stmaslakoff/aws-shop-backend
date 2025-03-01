@@ -1,0 +1,140 @@
+openapi: 3.0.0
+info:
+  title: Product Service API
+  description: API for managing products in the AWS Shop Backend
+  version: 1.0.0
+  contact:
+    name: Ihar Maslakou
+    email: i.maslakoff@softteco.com
+
+servers:
+  - url: https://{apiId}.execute-api.{region}.amazonaws.com/{stage}
+    variables:
+      apiId:
+        default: l5jkd362hl
+        description: API Gateway ID
+      region:
+        default: eu-central-1
+        description: AWS Region
+      stage:
+        default: prod
+        description: API Stage
+
+paths:
+  /products:
+    get:
+      summary: Get all products
+      description: Returns a list of all available products
+      operationId: getProductsList
+      tags:
+        - Products
+      responses:
+        '200':
+          description: Successful operation
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: '#/components/schemas/Product'
+        '500':
+          description: Internal Server Error
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+      x-amazon-apigateway-integration:
+        uri: arn:aws:apigateway:${region}:lambda:path/2015-03-31/functions/${GetProductsListLambdaArn}/invocations
+        passthroughBehavior: when_no_match
+        httpMethod: POST
+        type: aws_proxy
+
+  /products/{productId}:
+    get:
+      summary: Get product by ID
+      description: Returns a single product by ID
+      operationId: getProductById
+      tags:
+        - Products
+      parameters:
+        - name: productId
+          in: path
+          description: ID of the product to retrieve
+          required: true
+          schema:
+            type: string
+      responses:
+        '200':
+          description: Successful operation
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Product'
+        '400':
+          description: Invalid product ID supplied
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+        '404':
+          description: Product not found
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+        '500':
+          description: Internal Server Error
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+      x-amazon-apigateway-integration:
+        uri: arn:aws:apigateway:${region}:lambda:path/2015-03-31/functions/${GetProductByIdLambdaArn}/invocations
+        passthroughBehavior: when_no_match
+        httpMethod: POST
+        type: aws_proxy
+
+components:
+  schemas:
+    Product:
+      type: object
+      properties:
+        id:
+          type: string
+          example: "123e4567-e89b-12d3-a456-426614174000"
+        title:
+          type: string
+          example: "Product Name"
+        description:
+          type: string
+          example: "Short Product Description"
+        price:
+          type: number
+          example: 99
+      required:
+        - id
+        - title
+        - description
+        - price
+
+    Error:
+      type: object
+      properties:
+        message:
+          type: string
+          example: "Error message"
+      required:
+        - message
+
+  securitySchemes:
+    api_key:
+      type: apiKey
+      name: x-api-key
+      in: header
+
+x-amazon-apigateway-request-validators:
+  full:
+    validateRequestBody: true
+    validateRequestParameters: true
+
+x-amazon-apigateway-request-validator: full
