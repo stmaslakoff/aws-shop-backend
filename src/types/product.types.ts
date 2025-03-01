@@ -5,6 +5,6 @@ export interface Product {
   price: number;
 }
 
-export interface JoinedProduct extends Product {
+export interface StockProduct extends Product {
   count: number;
 }

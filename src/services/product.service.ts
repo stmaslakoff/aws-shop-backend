@@ -1,8 +1,8 @@
-import { Product } from '../types/product.types';
+import { StockProduct, Product } from '../types/product.types';
 import { logger } from '../utils/logger';
-import { getStockProductsQuery } from './product.queries';
+import { getStockProductById, getStockProductsQuery } from './product.queries';
 
-export const getProductsList = async (): Promise<Product[]> => {
+export const getProductsList = async (): Promise<StockProduct[]> => {
   try {
     const products = await getStockProductsQuery();
 
@@ -17,7 +17,11 @@ export const getProductsList = async (): Promise<Product[]> => {
   }
 };
 
-export const getProductById = async (productId: string): Promise<Product | undefined> => {
-  const products = await getProductsList();
-  return products.find(product => product.id === productId);
+export const getProductById = async (productId: string): Promise<StockProduct | null> => {
+  try {
+    return await getStockProductById(productId);
+  } catch (error) {
+    logger.error('Error getting a product from database', { productId, error });
+    throw error;
+  }
 };
