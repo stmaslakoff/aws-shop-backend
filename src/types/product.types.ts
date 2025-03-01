@@ -19,6 +19,7 @@ export const createProductSchema = z.object({
     .default(0)
 });
 
+export interface CreateProductDto extends z.infer<typeof createProductSchema> {}
 
 export interface Product {
   id: string;
@@ -31,9 +32,3 @@ export interface StockProduct extends Product {
   count: number;
 }
 
-export interface CreateProductData {
-  title: string;
-  description?: string;
-  price: number;
-  count?: number;
-}

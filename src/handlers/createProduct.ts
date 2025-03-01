@@ -31,13 +31,6 @@ export const handler = async (event: APIGatewayProxyEvent): Promise<APIGatewayPr
       productData: validatedData,
     });
 
-
-    if (!productData.title || typeof productData.price !== 'number') {
-      return createResponse(400, {
-        message: 'Title and price are required fields. Price must be a number.'
-      });
-    }
-
     const newProduct = await createProduct(productData);
 
     logger.info('Successfully created product', {

@@ -1,4 +1,4 @@
-import { StockProduct, CreateProductData } from '../types/product.types';
+import { StockProduct, CreateProductDto } from '../types/product.types';
 import { logger } from '../utils/logger';
 import { createProductQuery, getStockProductById, getStockProductsQuery } from './product.queries';
 
@@ -26,7 +26,7 @@ export const getProductById = async (productId: string): Promise<StockProduct | 
   }
 };
 
-export const createProduct = async (data: CreateProductData) => {
+export const createProduct = async (data: CreateProductDto) => {
   try {
     const product = await createProductQuery(data);
 

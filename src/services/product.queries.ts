@@ -1,6 +1,6 @@
 import { docClient } from '../utils/databaseClient';
 import { GetCommand, ScanCommand, TransactWriteCommand } from '@aws-sdk/lib-dynamodb';
-import { StockProduct, Product, CreateProductData } from '../types/product.types';
+import { StockProduct, Product, CreateProductDto } from '../types/product.types';
 import { getStockByProductId, getStocksListQuery } from './stock.queries';
 import { logger } from '../utils/logger';
 import { v4 as uuidv4 } from 'uuid';
@@ -48,7 +48,7 @@ export const getStockProductById = async (productId: string): Promise<StockProdu
   };
 }
 
-export const createProductQuery = async (data: CreateProductData): Promise<StockProduct | null> => {
+export const createProductQuery = async (data: CreateProductDto): Promise<StockProduct | null> => {
   const productId = uuidv4();
 
   const product = {
