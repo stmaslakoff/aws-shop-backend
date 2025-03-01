@@ -1,21 +1,10 @@
-import { DynamoDBClient } from "@aws-sdk/client-dynamodb";
-import {
-  DynamoDBDocumentClient,
-  ScanCommand,
-} from "@aws-sdk/lib-dynamodb";
 import { Product } from '../types/product.types';
 import { logger } from '../utils/logger';
-
-const client = new DynamoDBClient({});
-const docClient = DynamoDBDocumentClient.from(client);
+import { getProductsListQuery } from './products.queries';
 
 export const getProductsList = async (): Promise<Product[]> => {
   try {
-    const productsResponse = await docClient.send(new ScanCommand({
-      TableName: process.env.PRODUCTS_TABLE
-    }));
-
-    const products = productsResponse.Items as Product[] || [];
+    const products = await getProductsListQuery();
 
     logger.info('Retrieved products from database', {
       productsCount: products.length,
