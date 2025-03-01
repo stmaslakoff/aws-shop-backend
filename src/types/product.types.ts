@@ -4,3 +4,7 @@ export interface Product {
   description: string;
   price: number;
 }
+
+export interface JoinedProduct extends Product {
+  count: number;
+}

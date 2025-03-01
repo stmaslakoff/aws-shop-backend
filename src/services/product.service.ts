@@ -1,10 +1,10 @@
 import { Product } from '../types/product.types';
 import { logger } from '../utils/logger';
-import { getProductsListQuery } from './products.queries';
+import { getStockProductsQuery } from './product.queries';
 
 export const getProductsList = async (): Promise<Product[]> => {
   try {
-    const products = await getProductsListQuery();
+    const products = await getStockProductsQuery();
 
     logger.info('Retrieved products from database', {
       productsCount: products.length,
