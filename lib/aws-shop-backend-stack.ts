@@ -1,6 +1,7 @@
 import * as cdk from 'aws-cdk-lib';
 import * as lambda from 'aws-cdk-lib/aws-lambda';
 import * as apigateway from 'aws-cdk-lib/aws-apigateway';
+import * as dynamodb from 'aws-cdk-lib/aws-dynamodb';
 import * as path from 'path';
 import { LayerVersion, Function, Runtime, Code } from 'aws-cdk-lib/aws-lambda';
 import { NodejsFunction, NodejsFunctionProps } from 'aws-cdk-lib/aws-lambda-nodejs';
@@ -8,8 +9,9 @@ import { ILayerVersion } from 'aws-cdk-lib/aws-lambda/lib/layers';
 
 const HANDLERS_FOLDER = '../src/handlers';
 
-const getCommonHandlerProps = ({ layers }: { layers?: [ILayerVersion] }): Partial<NodejsFunctionProps> => ({
+const getCommonHandlerProps = ({ layers, environment }: { layers?: [ILayerVersion], environment?: { [key: string]: string } }): Partial<NodejsFunctionProps> => ({
   runtime: lambda.Runtime.NODEJS_22_X,
+  environment,
   handler: 'handler',
   layers,
   tracing: lambda.Tracing.ACTIVE,
@@ -27,13 +29,33 @@ export class AwsShopBackendStack extends cdk.Stack {
   constructor(scope: cdk.App, id: string, props?: cdk.StackProps) {
     super(scope, id, props);
 
+    const productsTable = dynamodb.Table.fromTableName(
+      this,
+      'ProductsTable',
+      'products',
+    );
+
+    const stocksTable = dynamodb.Table.fromTableName(
+      this,
+      'StocksTable',
+      'stocks',
+    );
+
     const powertoolsLayer = LayerVersion.fromLayerVersionArn(
       this,
       'PowertoolsLayer',
       `arn:aws:lambda:${cdk.Stack.of(this).region}:094274105915:layer:AWSLambdaPowertoolsTypeScriptV2:20`
     );
 
-    const commonHandlerProps = getCommonHandlerProps({ layers: [powertoolsLayer] });
+    const commonEnvironment = {
+      PRODUCTS_TABLE: productsTable.tableName,
+      STOCKS_TABLE: stocksTable.tableName,
+    };
+
+    const commonHandlerProps = getCommonHandlerProps({
+      layers: [powertoolsLayer],
+      environment: commonEnvironment,
+    });
 
     const getProductsListHandler = new NodejsFunction(this, 'GetProductsListHandler', {
       ...commonHandlerProps,
@@ -59,6 +81,11 @@ export class AwsShopBackendStack extends cdk.Stack {
 
     const product = products.addResource('{productId}');
     product.addMethod('GET', new apigateway.LambdaIntegration(getProductByIdHandler));
+
+    productsTable.grantReadData(getProductsListHandler);
+    stocksTable.grantReadData(getProductsListHandler);
+    productsTable.grantReadData(getProductByIdHandler);
+    stocksTable.grantReadData(getProductByIdHandler);
 
     new cdk.CfnOutput(this, 'ApiUrl', {
       value: api.url,
