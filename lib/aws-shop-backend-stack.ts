@@ -20,7 +20,6 @@ const getCommonHandlerProps = ({ layers, environment }: { layers?: [ILayerVersio
     sourceMap: true,
     externalModules: [
       '@aws-lambda-powertools/*',
-      'aws-sdk'
     ],
   }
 });
