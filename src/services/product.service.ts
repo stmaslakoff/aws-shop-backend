@@ -1,6 +1,6 @@
-import { StockProduct, Product } from '../types/product.types';
+import { StockProduct, CreateProductData } from '../types/product.types';
 import { logger } from '../utils/logger';
-import { getStockProductById, getStockProductsQuery } from './product.queries';
+import { createProductQuery, getStockProductById, getStockProductsQuery } from './product.queries';
 
 export const getProductsList = async (): Promise<StockProduct[]> => {
   try {
@@ -25,3 +25,18 @@ export const getProductById = async (productId: string): Promise<StockProduct | 
     throw error;
   }
 };
+
+export const createProduct = async (data: CreateProductData) => {
+  try {
+    const product = await createProductQuery(data);
+
+    logger.info('Created new product and stock', {
+      product,
+    });
+
+    return product;
+  } catch (error) {
+    logger.error('Error creating product in database', { error });
+    throw error;
+  }
+}

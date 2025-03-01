@@ -8,3 +8,10 @@ export interface Product {
 export interface StockProduct extends Product {
   count: number;
 }
+
+export interface CreateProductData {
+  title: string;
+  description?: string;
+  price: number;
+  count?: number;
+}

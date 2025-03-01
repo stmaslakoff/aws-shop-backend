@@ -67,6 +67,11 @@ export class AwsShopBackendStack extends cdk.Stack {
       entry: path.join(__dirname, `${HANDLERS_FOLDER}/getProductById.ts`),
     });
 
+    const createProductHandler = new NodejsFunction(this, 'CreateProductHandler', {
+      ...commonHandlerProps,
+      entry: path.join(__dirname, `${HANDLERS_FOLDER}/createProduct.ts`),
+    });
+
     const api = new apigateway.RestApi(this, 'Api', {
       restApiName: 'Products API',
       description: 'API Gateway with Lambda integration',
@@ -78,6 +83,7 @@ export class AwsShopBackendStack extends cdk.Stack {
 
     const products = api.root.addResource('products');
     products.addMethod('GET', new apigateway.LambdaIntegration(getProductsListHandler));
+    products.addMethod('POST', new apigateway.LambdaIntegration(createProductHandler));
 
     const product = products.addResource('{productId}');
     product.addMethod('GET', new apigateway.LambdaIntegration(getProductByIdHandler));
@@ -86,6 +92,9 @@ export class AwsShopBackendStack extends cdk.Stack {
     stocksTable.grantReadData(getProductsListHandler);
     productsTable.grantReadData(getProductByIdHandler);
     stocksTable.grantReadData(getProductByIdHandler);
+
+    productsTable.grantReadWriteData(createProductHandler);
+    stocksTable.grantReadWriteData(createProductHandler);
 
     new cdk.CfnOutput(this, 'ApiUrl', {
       value: api.url,

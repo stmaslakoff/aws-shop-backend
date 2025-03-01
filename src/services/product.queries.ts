@@ -1,8 +1,9 @@
 import { docClient } from '../utils/databaseClient';
-import { GetCommand, ScanCommand } from '@aws-sdk/lib-dynamodb';
-import { StockProduct, Product } from '../types/product.types';
+import { GetCommand, ScanCommand, TransactWriteCommand } from '@aws-sdk/lib-dynamodb';
+import { StockProduct, Product, CreateProductData } from '../types/product.types';
 import { getStockByProductId, getStocksListQuery } from './stock.queries';
 import { logger } from '../utils/logger';
+import { v4 as uuidv4 } from 'uuid';
 
 const getProductsListQuery = async (): Promise<Product[]> => {
   const productsResponse = await docClient.send(new ScanCommand({
@@ -45,5 +46,42 @@ export const getStockProductById = async (productId: string): Promise<StockProdu
     ...product,
     count: stock ? stock.count : 0
   };
+}
 
+export const createProductQuery = async (data: CreateProductData): Promise<StockProduct | null> => {
+  const productId = uuidv4();
+
+  const product = {
+    id: productId,
+    title: data.title,
+    description: data.description || '',
+    price: data.price,
+  };
+
+  const stock = {
+    product_id: productId,
+    count: data.count || 0
+  };
+
+  // Use transaction to ensure both operations succeed or fail together
+  const command = new TransactWriteCommand({
+    TransactItems: [
+      {
+        Put: {
+          TableName: process.env.PRODUCTS_TABLE!,
+          Item: product
+        }
+      },
+      {
+        Put: {
+          TableName: process.env.STOCKS_TABLE!,
+          Item: stock
+        }
+      }
+    ]
+  });
+
+  await docClient.send(command);
+
+  return await getStockProductById(productId);
 }
