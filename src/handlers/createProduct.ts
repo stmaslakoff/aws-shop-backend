@@ -1,4 +1,6 @@
 import { APIGatewayProxyEvent, APIGatewayProxyResult } from 'aws-lambda';
+import { createProductSchema } from '../types/product.types';
+import { ZodError } from 'zod';
 import { createProduct } from '../services/product.service';
 import { createResponse } from '../utils/response';
 import { logger } from '../utils/logger';
@@ -23,6 +25,13 @@ export const handler = async (event: APIGatewayProxyEvent): Promise<APIGatewayPr
       productData,
     });
 
+    const validatedData = createProductSchema.parse(productData);
+
+    logger.info('Validated product data', {
+      productData: validatedData,
+    });
+
+
     if (!productData.title || typeof productData.price !== 'number') {
       return createResponse(400, {
         message: 'Title and price are required fields. Price must be a number.'
@@ -45,6 +54,16 @@ export const handler = async (event: APIGatewayProxyEvent): Promise<APIGatewayPr
     if (error instanceof SyntaxError) {
       return createResponse(400, {
         message: 'Invalid JSON in request body'
+      });
+    }
+
+    if (error instanceof ZodError) {
+      return createResponse(400, {
+        message: 'Validation error',
+        errors: error.errors.map(err => ({
+          field: err.path.join('.'),
+          message: err.message
+        }))
       });
     }
 
