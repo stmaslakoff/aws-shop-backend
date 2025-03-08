@@ -15,10 +15,8 @@ export const handler = async (
     const fileName = event.queryStringParameters?.name;
 
     if (!fileName) {
-      return {
-        statusCode: 400,
-        body: JSON.stringify({ message: 'File name is required' }),
-      };
+      logger.warn('File name is required');
+      return createResponse(400, { message: 'File name is required' });
     }
 
     const key = `${UPLOADED_FOLDER}/${fileName}`;

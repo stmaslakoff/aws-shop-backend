@@ -14,7 +14,6 @@ export const handler = async (event: S3Event) => {
       const key = decodeURIComponent(record.s3.object.key);
       logger.info(`Processing file: ${key}`);
 
-      // Get the object from S3
       const getObjectResponse = await s3Client.send(
         new GetObjectCommand({
           Bucket: BUCKET_NAME,
@@ -38,7 +37,6 @@ export const handler = async (event: S3Event) => {
             })
             .on('end', async () => {
               try {
-                // Copy to parsed folder
                 const newKey = key.replace('uploaded/', `${PARSED_FOLDER}/`);
                 await s3Client.send(
                   new CopyObjectCommand({
@@ -48,7 +46,6 @@ export const handler = async (event: S3Event) => {
                   })
                 );
 
-                // Delete from uploaded folder
                 await s3Client.send(
                   new DeleteObjectCommand({
                     Bucket: BUCKET_NAME,
@@ -66,7 +63,7 @@ export const handler = async (event: S3Event) => {
       }
     }
   } catch (error) {
-    logger.error(`Error processing file: ${error}`);
+    logger.error('Error processing file', { error });
     throw error;
   }
 };
