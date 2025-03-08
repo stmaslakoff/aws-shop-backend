@@ -1,28 +1,12 @@
 import * as cdk from 'aws-cdk-lib';
-import * as lambda from 'aws-cdk-lib/aws-lambda';
 import * as apigateway from 'aws-cdk-lib/aws-apigateway';
 import * as dynamodb from 'aws-cdk-lib/aws-dynamodb';
 import * as path from 'path';
-import { LayerVersion, Function, Runtime, Code } from 'aws-cdk-lib/aws-lambda';
-import { NodejsFunction, NodejsFunctionProps } from 'aws-cdk-lib/aws-lambda-nodejs';
-import { ILayerVersion } from 'aws-cdk-lib/aws-lambda/lib/layers';
+import { LayerVersion } from 'aws-cdk-lib/aws-lambda';
+import { NodejsFunction } from 'aws-cdk-lib/aws-lambda-nodejs';
+import { getCommonHandlerProps } from './utils';
 
 const HANDLERS_FOLDER = '../src/handlers';
-
-const getCommonHandlerProps = ({ layers, environment }: { layers?: [ILayerVersion], environment?: { [key: string]: string } }): Partial<NodejsFunctionProps> => ({
-  runtime: lambda.Runtime.NODEJS_22_X,
-  environment,
-  handler: 'handler',
-  layers,
-  tracing: lambda.Tracing.ACTIVE,
-  bundling: {
-    minify: true,
-    sourceMap: true,
-    externalModules: [
-      '@aws-lambda-powertools/*',
-    ],
-  }
-});
 
 export class AwsShopBackendStack extends cdk.Stack {
   constructor(scope: cdk.App, id: string, props?: cdk.StackProps) {
