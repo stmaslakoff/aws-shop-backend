@@ -6,6 +6,8 @@ import * as lambdaEventSources from 'aws-cdk-lib/aws-lambda-event-sources';
 import * as path from 'path';
 import { LayerVersion } from 'aws-cdk-lib/aws-lambda';
 import { NodejsFunction } from 'aws-cdk-lib/aws-lambda-nodejs';
+import { Topic } from 'aws-cdk-lib/aws-sns';
+import { EmailSubscription } from 'aws-cdk-lib/aws-sns-subscriptions';
 import { getCommonHandlerProps } from './utils';
 
 const HANDLERS_FOLDER = '../src/handlers';
@@ -56,15 +58,28 @@ export class AwsShopBackendStack extends cdk.Stack {
       ...commonHandlerProps,
       entry: path.join(__dirname, `${HANDLERS_FOLDER}/createProduct.ts`),
     });
-
-    const catalogBatchProcess = new NodejsFunction(this, 'CatalogBatchProcess', {
-      ...commonHandlerProps,
-      entry: path.join(__dirname, `${HANDLERS_FOLDER}/catalogBatchProcess.ts`),
-    });
-
     const catalogItemsQueue = new sqs.Queue(this, 'CatalogItemsQueue', {
       queueName: 'catalogItemsQueue',
     });
+
+    const createProductTopic = new Topic(this, 'CreateProductTopic', {
+      topicName: 'createProductTopic'
+    });
+
+    createProductTopic.addSubscription(
+      new EmailSubscription('igormaslakoff@mailinator.com')
+    );
+
+    const catalogBatchProcess = new NodejsFunction(this, 'CatalogBatchProcess', {
+      ...commonHandlerProps,
+      environment: {
+        ...commonHandlerProps.environment,
+        SNS_TOPIC_ARN: createProductTopic.topicArn
+      },
+      entry: path.join(__dirname, `${HANDLERS_FOLDER}/catalogBatchProcess.ts`),
+    });
+
+    createProductTopic.grantPublish(catalogBatchProcess);
 
     catalogBatchProcess.addEventSource(new lambdaEventSources.SqsEventSource(catalogItemsQueue, {
       batchSize: 5,

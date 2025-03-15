@@ -1,15 +1,13 @@
 import { S3Event } from 'aws-lambda';
 import { GetObjectCommand, CopyObjectCommand, DeleteObjectCommand } from '@aws-sdk/client-s3';
-import { SQS } from '@aws-sdk/client-sqs';
 import { Readable } from 'stream';
 import csvParser from 'csv-parser';
 import { logger } from '../utils/logger';
 import { s3Client } from '../utils/s3Client';
+import { sqs } from '../utils/sqsClient';
 
 const BUCKET_NAME = process.env.BUCKET_NAME;
 const PARSED_FOLDER = process.env.PARSED_FOLDER;
-
-const sqs = new SQS();
 
 export const handler = async (event: S3Event) => {
   try {
