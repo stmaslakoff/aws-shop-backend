@@ -1,5 +1,6 @@
 import { S3Event } from 'aws-lambda';
 import { GetObjectCommand, CopyObjectCommand, DeleteObjectCommand } from '@aws-sdk/client-s3';
+import { SQS } from '@aws-sdk/client-sqs';
 import { Readable } from 'stream';
 import csvParser from 'csv-parser';
 import { logger } from '../utils/logger';
@@ -7,6 +8,8 @@ import { s3Client } from '../utils/s3Client';
 
 const BUCKET_NAME = process.env.BUCKET_NAME;
 const PARSED_FOLDER = process.env.PARSED_FOLDER;
+
+const sqs = new SQS();
 
 export const handler = async (event: S3Event) => {
   try {
@@ -28,8 +31,17 @@ export const handler = async (event: S3Event) => {
 
           stream
             .pipe(csvParser())
-            .on('data', (data) => {
-              logger.info('Parsed CSV row:', JSON.stringify(data));
+            .on('data', async (data) => {
+              try {
+                const productData = JSON.stringify(data);
+                await sqs.sendMessage({
+                  QueueUrl: process.env.SQS_QUEUE_URL,
+                  MessageBody: productData,
+                });
+                logger.info('Created a product from data:', { productData });
+              } catch (error) {
+                logger.error('Error sending message to SQS:', { error });
+              }
             })
             .on('error', (error) => {
               logger.error('Error parsing CSV:', error);
