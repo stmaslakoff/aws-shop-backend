@@ -1,6 +1,8 @@
 import * as cdk from 'aws-cdk-lib';
 import * as apigateway from 'aws-cdk-lib/aws-apigateway';
 import * as dynamodb from 'aws-cdk-lib/aws-dynamodb';
+import * as sqs from 'aws-cdk-lib/aws-sqs';
+import * as lambdaEventSources from 'aws-cdk-lib/aws-lambda-event-sources';
 import * as path from 'path';
 import { LayerVersion } from 'aws-cdk-lib/aws-lambda';
 import { NodejsFunction } from 'aws-cdk-lib/aws-lambda-nodejs';
@@ -55,6 +57,19 @@ export class AwsShopBackendStack extends cdk.Stack {
       entry: path.join(__dirname, `${HANDLERS_FOLDER}/createProduct.ts`),
     });
 
+    const catalogBatchProcess = new NodejsFunction(this, 'CatalogBatchProcess', {
+      ...commonHandlerProps,
+      entry: path.join(__dirname, `${HANDLERS_FOLDER}/catalogBatchProcess.ts`),
+    });
+
+    const catalogItemsQueue = new sqs.Queue(this, 'CatalogItemsQueue', {
+      queueName: 'catalogItemsQueue',
+    });
+
+    catalogBatchProcess.addEventSource(new lambdaEventSources.SqsEventSource(catalogItemsQueue, {
+      batchSize: 5,
+    }));
+
     const api = new apigateway.RestApi(this, 'Api', {
       restApiName: 'Products API',
       description: 'API Gateway with Lambda integration',
@@ -78,6 +93,10 @@ export class AwsShopBackendStack extends cdk.Stack {
 
     productsTable.grantReadWriteData(createProductHandler);
     stocksTable.grantReadWriteData(createProductHandler);
+
+    productsTable.grantReadWriteData(catalogBatchProcess);
+    stocksTable.grantReadWriteData(catalogBatchProcess);
+
 
     new cdk.CfnOutput(this, 'ApiUrl', {
       value: api.url,
