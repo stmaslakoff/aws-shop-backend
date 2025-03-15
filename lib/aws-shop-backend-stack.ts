@@ -1,9 +1,13 @@
 import * as cdk from 'aws-cdk-lib';
 import * as apigateway from 'aws-cdk-lib/aws-apigateway';
 import * as dynamodb from 'aws-cdk-lib/aws-dynamodb';
+import * as sqs from 'aws-cdk-lib/aws-sqs';
+import * as lambdaEventSources from 'aws-cdk-lib/aws-lambda-event-sources';
 import * as path from 'path';
 import { LayerVersion } from 'aws-cdk-lib/aws-lambda';
 import { NodejsFunction } from 'aws-cdk-lib/aws-lambda-nodejs';
+import { SubscriptionFilter, Topic } from 'aws-cdk-lib/aws-sns';
+import { EmailSubscription } from 'aws-cdk-lib/aws-sns-subscriptions';
 import { getCommonHandlerProps } from './utils';
 
 const HANDLERS_FOLDER = '../src/handlers';
@@ -54,6 +58,48 @@ export class AwsShopBackendStack extends cdk.Stack {
       ...commonHandlerProps,
       entry: path.join(__dirname, `${HANDLERS_FOLDER}/createProduct.ts`),
     });
+    const catalogItemsQueue = new sqs.Queue(this, 'CatalogItemsQueue', {
+      queueName: 'catalogItemsQueue',
+    });
+
+    const createProductTopic = new Topic(this, 'CreateProductTopic', {
+      topicName: 'createProductTopic'
+    });
+
+    createProductTopic.addSubscription(
+      new EmailSubscription('i.maslakoff+multiple@example.com', {
+        filterPolicy: {
+          createdProductsLength: SubscriptionFilter.numericFilter({
+            greaterThan: 1
+          })
+        }
+      })
+    );
+
+    createProductTopic.addSubscription(
+      new EmailSubscription('i.maslakoff+single@example.com', {
+        filterPolicy: {
+          createdProductsLength: SubscriptionFilter.numericFilter({
+            lessThanOrEqualTo: 1
+          })
+        }
+      })
+    );
+
+    const catalogBatchProcess = new NodejsFunction(this, 'CatalogBatchProcess', {
+      ...commonHandlerProps,
+      environment: {
+        ...commonHandlerProps.environment,
+        SNS_TOPIC_ARN: createProductTopic.topicArn
+      },
+      entry: path.join(__dirname, `${HANDLERS_FOLDER}/catalogBatchProcess.ts`),
+    });
+
+    createProductTopic.grantPublish(catalogBatchProcess);
+
+    catalogBatchProcess.addEventSource(new lambdaEventSources.SqsEventSource(catalogItemsQueue, {
+      batchSize: 5,
+    }));
 
     const api = new apigateway.RestApi(this, 'Api', {
       restApiName: 'Products API',
@@ -78,6 +124,10 @@ export class AwsShopBackendStack extends cdk.Stack {
 
     productsTable.grantReadWriteData(createProductHandler);
     stocksTable.grantReadWriteData(createProductHandler);
+
+    productsTable.grantReadWriteData(catalogBatchProcess);
+    stocksTable.grantReadWriteData(catalogBatchProcess);
+
 
     new cdk.CfnOutput(this, 'ApiUrl', {
       value: api.url,

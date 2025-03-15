@@ -6,6 +6,7 @@ import { NodejsFunction } from 'aws-cdk-lib/aws-lambda-nodejs';
 import { Construct } from 'constructs';
 import { LayerVersion } from 'aws-cdk-lib/aws-lambda';
 import * as s3n from 'aws-cdk-lib/aws-s3-notifications';
+import { Queue } from 'aws-cdk-lib/aws-sqs';
 import { getCommonHandlerProps } from './utils';
 
 const HANDLERS_FOLDER = '../src/handlers';
@@ -51,11 +52,23 @@ export class ImportServiceStack extends cdk.Stack {
       entry: path.join(__dirname, `${HANDLERS_FOLDER}/importProductsFile.ts`),
     });
 
+    const catalogItemsQueue = Queue.fromQueueArn(
+      this,
+      'CatalogItemsQueue',
+      'arn:aws:sqs:eu-central-1:390402543142:catalogItemsQueue' // TODO replace hardcoded ARN with a more elegant solution
+    );
+
     const importProductsFileParser = new NodejsFunction(this, 'ImportProductsFileParserLambda', {
       ...commonHandlerProps,
+      environment: {
+        ...commonHandlerProps.environment,
+        SQS_QUEUE_URL: catalogItemsQueue.queueUrl,
+      },
       entry: path.join(__dirname, `${HANDLERS_FOLDER}/importProductsFileParser.ts`),
       timeout: cdk.Duration.seconds(60),
     });
+
+    catalogItemsQueue.grantSendMessages(importProductsFileParser);
 
     importBucket.grantReadWrite(importProductsFile);
     importBucket.grantReadWrite(importProductsFileParser);
@@ -64,7 +77,7 @@ export class ImportServiceStack extends cdk.Stack {
     importBucket.addEventNotification(
       s3.EventType.OBJECT_CREATED,
       new s3n.LambdaDestination(importProductsFileParser),
-      { prefix: `${commonEnvironment.UPLOADED_FOLDER}/` }
+      {prefix: `${commonEnvironment.UPLOADED_FOLDER}/`}
     );
 
     const api = new apigateway.RestApi(this, 'ImportApi', {
