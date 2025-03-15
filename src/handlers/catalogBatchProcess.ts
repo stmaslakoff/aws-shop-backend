@@ -29,6 +29,10 @@ export const handler = async (event: SQSEvent): Promise<void> => {
         createdProducts,
       }),
       MessageAttributes: {
+        createdProductsLength: {
+          DataType: 'Number',
+          StringValue: createdProducts.length.toString(),
+        },
         status: {
           DataType: 'String',
           StringValue: 'success'

@@ -6,7 +6,7 @@ import * as lambdaEventSources from 'aws-cdk-lib/aws-lambda-event-sources';
 import * as path from 'path';
 import { LayerVersion } from 'aws-cdk-lib/aws-lambda';
 import { NodejsFunction } from 'aws-cdk-lib/aws-lambda-nodejs';
-import { Topic } from 'aws-cdk-lib/aws-sns';
+import { SubscriptionFilter, Topic } from 'aws-cdk-lib/aws-sns';
 import { EmailSubscription } from 'aws-cdk-lib/aws-sns-subscriptions';
 import { getCommonHandlerProps } from './utils';
 
@@ -67,7 +67,23 @@ export class AwsShopBackendStack extends cdk.Stack {
     });
 
     createProductTopic.addSubscription(
-      new EmailSubscription('igormaslakoff@mailinator.com')
+      new EmailSubscription('i.maslakoff+multiple@example.com', {
+        filterPolicy: {
+          createdProductsLength: SubscriptionFilter.numericFilter({
+            greaterThan: 1
+          })
+        }
+      })
+    );
+
+    createProductTopic.addSubscription(
+      new EmailSubscription('i.maslakoff+single@example.com', {
+        filterPolicy: {
+          createdProductsLength: SubscriptionFilter.numericFilter({
+            lessThanOrEqualTo: 1
+          })
+        }
+      })
     );
 
     const catalogBatchProcess = new NodejsFunction(this, 'CatalogBatchProcess', {
