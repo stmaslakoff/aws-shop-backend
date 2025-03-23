@@ -5,6 +5,7 @@ import * as iam from 'aws-cdk-lib/aws-iam';
 import * as path from 'path';
 import { NodejsFunction } from 'aws-cdk-lib/aws-lambda-nodejs';
 import { LayerVersion } from 'aws-cdk-lib/aws-lambda';
+import 'dotenv/config';
 import { getCommonHandlerProps } from './utils';
 
 const HANDLERS_FOLDER = '../src/handlers';

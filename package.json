@@ -47,6 +47,7 @@
     "aws-cdk-lib": "2.178.2",
     "constructs": "^10.0.0",
     "csv-parser": "3.2.0",
+    "dotenv": "16.4.7",
     "uuid": "11.1.0",
     "zod": "3.24.2"
   }
