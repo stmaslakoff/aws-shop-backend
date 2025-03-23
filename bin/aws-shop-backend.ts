@@ -2,6 +2,7 @@
 import * as cdk from 'aws-cdk-lib';
 import { AwsShopBackendStack } from '../lib/aws-shop-backend-stack';
 import { ImportServiceStack } from '../lib/import-service-stack';
+import { AuthorizationStack } from '../lib/authorization-stack';
 
 const app = new cdk.App();
 new AwsShopBackendStack(app, 'AwsShopBackendStack', {
@@ -21,3 +22,5 @@ new AwsShopBackendStack(app, 'AwsShopBackendStack', {
 });
 
 new ImportServiceStack(app, 'ImportServiceStack');
+
+new AuthorizationStack(app, 'AuthorizationStack');

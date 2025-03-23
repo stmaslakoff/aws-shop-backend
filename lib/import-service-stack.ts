@@ -1,6 +1,7 @@
 import * as cdk from 'aws-cdk-lib';
 import * as s3 from 'aws-cdk-lib/aws-s3';
 import * as apigateway from 'aws-cdk-lib/aws-apigateway';
+import * as authService from './authorization-stack';
 import * as path from 'path';
 import { NodejsFunction } from 'aws-cdk-lib/aws-lambda-nodejs';
 import { Construct } from 'constructs';
@@ -11,8 +12,12 @@ import { getCommonHandlerProps } from './utils';
 
 const HANDLERS_FOLDER = '../src/handlers';
 
+interface ImportServiceStackProps extends cdk.StackProps {
+  authStack: authService.AuthorizationStack
+}
+
 export class ImportServiceStack extends cdk.Stack {
-  constructor(scope: Construct, id: string, props?: cdk.StackProps) {
+  constructor(scope: Construct, id: string, props?: ImportServiceStackProps) {
     super(scope, id, props);
 
     const importBucket = new s3.Bucket(this, 'ImportBucket', {
@@ -80,6 +85,11 @@ export class ImportServiceStack extends cdk.Stack {
       {prefix: `${commonEnvironment.UPLOADED_FOLDER}/`}
     );
 
+    const authorizer = new apigateway.TokenAuthorizer(this, 'ImportAuthorizer', {
+      handler: props?.authStack.basicAuthorizerFunction!,
+      identitySource: apigateway.IdentitySource.header('Authorization')
+    });
+
     const api = new apigateway.RestApi(this, 'ImportApi', {
       restApiName: 'Import Service',
     });
@@ -90,6 +100,8 @@ export class ImportServiceStack extends cdk.Stack {
         requestParameters: {
           'method.request.querystring.name': true,
         },
+        authorizer: authorizer,
+        authorizationType: apigateway.AuthorizationType.CUSTOM
       }
     );
   }
