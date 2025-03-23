@@ -10,7 +10,7 @@ import { getCommonHandlerProps } from './utils';
 const HANDLERS_FOLDER = '../src/handlers';
 
 export class AuthorizationStack extends cdk.Stack {
-  public readonly basicAuthorizerFunction: lambda.Function;
+  public readonly authFunction: lambda.Function;
 
   constructor(scope: Construct, id: string, props?: cdk.StackProps) {
     super(scope, id, props);
@@ -26,20 +26,22 @@ export class AuthorizationStack extends cdk.Stack {
     });
 
     const username = 'stmaslakoff';
-    this.basicAuthorizerFunction = new NodejsFunction(this, 'BasicAuthorizerFunction', {
+    this.authFunction = new NodejsFunction(this, 'BasicAuthorizerFunction', {
       ...commonHandlerProps,
       entry: path.join(__dirname, `${HANDLERS_FOLDER}/basicAuthorizer.ts`),
       environment: {
-        [username]: process.env[username],
+        [username]: process.env[username]!,
       },
     });
 
-    this.basicAuthorizerFunction.addToRolePolicy(
-      new iam.PolicyStatement({
-        effect: iam.Effect.ALLOW,
-        actions: ['execute-api:Invoke'],
-        resources: ['*'],
-      })
-    );
+    this.authFunction.addPermission('APIGatewayInvokePermission', {
+      principal: new iam.ServicePrincipal('apigateway.amazonaws.com'),
+      action: 'lambda:InvokeFunction'
+    });
+
+    new cdk.CfnOutput(this, 'AuthorizerFunctionArn', {
+      value: this.authFunction.functionArn,
+      exportName: 'AuthorizerFunctionArn'
+    });
   }
 }

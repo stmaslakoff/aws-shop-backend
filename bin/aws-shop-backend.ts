@@ -21,6 +21,6 @@ new AwsShopBackendStack(app, 'AwsShopBackendStack', {
   /* For more information, see https://docs.aws.amazon.com/cdk/latest/guide/environments.html */
 });
 
-new ImportServiceStack(app, 'ImportServiceStack');
-
 new AuthorizationStack(app, 'AuthorizationStack');
+
+new ImportServiceStack(app, 'ImportServiceStack');
