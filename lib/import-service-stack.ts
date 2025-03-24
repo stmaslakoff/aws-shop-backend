@@ -1,6 +1,7 @@
 import * as cdk from 'aws-cdk-lib';
 import * as s3 from 'aws-cdk-lib/aws-s3';
 import * as apigateway from 'aws-cdk-lib/aws-apigateway';
+import { AuthorizationStack } from './authorization-stack';
 import * as path from 'path';
 import { NodejsFunction } from 'aws-cdk-lib/aws-lambda-nodejs';
 import { Construct } from 'constructs';
@@ -8,8 +9,13 @@ import { LayerVersion } from 'aws-cdk-lib/aws-lambda';
 import * as s3n from 'aws-cdk-lib/aws-s3-notifications';
 import { Queue } from 'aws-cdk-lib/aws-sqs';
 import { getCommonHandlerProps } from './utils';
+import { ResponseType } from '@aws-cdk/aws-apigateway';
 
 const HANDLERS_FOLDER = '../src/handlers';
+
+interface ImportServiceStackProps extends cdk.StackProps {
+  authStack: AuthorizationStack;
+}
 
 export class ImportServiceStack extends cdk.Stack {
   constructor(scope: Construct, id: string, props?: cdk.StackProps) {
@@ -80,16 +86,77 @@ export class ImportServiceStack extends cdk.Stack {
       {prefix: `${commonEnvironment.UPLOADED_FOLDER}/`}
     );
 
+    const authorizerFunction = NodejsFunction.fromFunctionArn(
+      this,
+      'ImportedAuthorizerFunction',
+      cdk.Fn.importValue('AuthorizerFunctionArn')
+    );
+
+    const authorizer = new apigateway.TokenAuthorizer(this, 'ImportAuthorizer', {
+      handler: authorizerFunction,
+      identitySource: apigateway.IdentitySource.header('Authorization')
+    });
+
+    const allowHeaders = [
+      'Content-Type',
+      'X-Amz-Date',
+      'Authorization',
+      'X-Api-Key',
+      'X-Amz-Security-Token',
+    ];
+
     const api = new apigateway.RestApi(this, 'ImportApi', {
       restApiName: 'Import Service',
+      defaultCorsPreflightOptions: {
+        allowOrigins: apigateway.Cors.ALL_ORIGINS,
+        allowMethods: apigateway.Cors.ALL_METHODS,
+        allowHeaders: [
+          'Content-Type',
+          'X-Amz-Date',
+          'Authorization',
+          'X-Api-Key',
+          'X-Amz-Security-Token',
+        ],
+        allowCredentials: true,
+      },
     });
+
+    api.addGatewayResponse('DEFAULT_4XX', {
+      type: ResponseType.DEFAULT_4XX,
+      responseHeaders: {
+        'Access-Control-Allow-Origin': "'*'",
+        'Access-Control-Allow-Headers': "'Content-Type,X-Amz-Date,Authorization,X-Api-Key,X-Amz-Security-Token'",
+      },
+      templates: {
+        'application/json': '{"message": "$context.authorizer.message"}',
+      },
+    });
+
+    const methodResponseCodes = ['200', '401', '403', '500'];
 
     const importResource = api.root.addResource('import');
     importResource.addMethod('GET',
-      new apigateway.LambdaIntegration(importProductsFile), {
+      new apigateway.LambdaIntegration(importProductsFile, {
+        integrationResponses: [
+          {
+            statusCode: '200',
+            responseParameters: {
+              'method.response.header.Access-Control-Allow-Origin': "'*'",
+            },
+          },
+        ],
+      }), {
         requestParameters: {
           'method.request.querystring.name': true,
         },
+        authorizer: authorizer,
+        authorizationType: apigateway.AuthorizationType.CUSTOM,
+        methodResponses: methodResponseCodes.map(statusCode => ({
+          statusCode,
+          responseParameters: {
+            "method.response.header.Access-Control-Allow-Origin": true,
+          },
+        })),
       }
     );
   }
