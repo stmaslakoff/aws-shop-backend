@@ -6,10 +6,6 @@ export const handler = async (event: APIGatewayTokenAuthorizerEvent): Promise<AP
   try {
     logger.info('Event: ', JSON.stringify(event));
 
-    if (!event.authorizationToken) {
-      return generatePolicy('undefined', Effect.DENY, event.methodArn, 401);
-    }
-
     const token = event.authorizationToken.split(' ')[1];
     const credentials = Buffer.from(token, 'base64').toString('utf-8').split(':');
     const username = credentials[0];
