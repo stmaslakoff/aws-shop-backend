@@ -1,0 +1,25 @@
+{
+  "name": "bff-service",
+  "version": "1.0.0",
+  "description": "BFF Service for AWS Shop",
+  "main": "dist/server.js",
+  "scripts": {
+    "clean": "rm -rf dist",
+    "build": "npm run clean && tsc",
+    "watch": "tsc -w",
+    "start": "node dist/server.js",
+    "dev": "ts-node src/server.ts"
+  },
+  "keywords": [],
+  "author": "",
+  "license": "ISC",
+  "devDependencies": {
+    "@types/node": "22.14.1",
+    "ts-node": "^10.9.2",
+    "typescript": "^5.8.3"
+  },
+  "dependencies": {
+    "dotenv": "16.5.0",
+    "node-fetch": "3.3.2"
+  }
+}
